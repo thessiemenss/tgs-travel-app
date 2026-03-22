@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TGS Travel Premium</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+    <style>
+        :root {
+            /* Фирменные цвета */
+            --primary-color: #f39c12; 
+            --primary-dark: #d68910;
+            --accent-color: #e74c3c;
+            --bg-color: #fcfaf5; 
+            --card-bg: #ffffff;
+            --text-main: #2c3e50; 
+            --text-muted: #7f8c8d;
+            --border-color: #eaeceb;
+        }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; padding-bottom: 80px; overflow-x: hidden; }
+        @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Уведомления (Toasts) */
+        .toast {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.9); color: white; padding: 12px 24px;
+            border-radius: 30px; font-size: 14px; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 9999; transition: top 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            backdrop-filter: blur(10px); white-space: nowrap;
+        }
+        .toast.show { top: 20px; }
+
+        /* ОСНОВНОЙ ЭКРАН */
+        .header-banner { background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('https://www.southernliving.com/thmb/uC9lfdB-vpeXk1XuxT12bII4EQc=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/GettyImages-1474089369-d2b0855436be4074ae986429058bf15c.jpg') center/cover; height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 0 20px; margin-bottom: 20px; animation: slideUpFade 0.5s ease-out forwards; }
+        .logo-img { width: 110px; height: 110px; object-fit: contain; margin-bottom: 10px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3)); }
+        .header-banner p { margin: 0; font-size: 13px; color: rgba(255, 255, 255, 0.9); font-weight: 500; text-align: center; line-height: 1.5; max-width: 300px; }
+        
+        .filters-container, .categories-section { padding: 0 16px; margin-bottom: 15px; }
+        .search-input { width: 100%; box-sizing: border-box; padding: 15px 20px; margin-bottom: 15px; border-radius: 16px; border: 1px solid var(--border-color); background-color: var(--card-bg); color: var(--text-main); font-size: 14px; font-family: 'Poppins', sans-serif; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .search-input:focus { border-color: var(--primary-color); }
+        
+        .budget-filter { background: var(--card-bg); padding: 15px 20px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .budget-header { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-main); }
+        .budget-value { color: var(--primary-color); font-weight: 700; }
+        .range-slider { width: 100%; appearance: none; height: 6px; border-radius: 3px; background: #ecf0f1; outline: none; }
+        .range-slider::-webkit-slider-thumb { appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--primary-color); cursor: pointer; box-shadow: 0 2px 6px rgba(243, 156, 18, 0.4); }
+        
+        .category-list { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; -ms-overflow-style: none; scrollbar-width: none; }
+        .category-list::-webkit-scrollbar { display: none; }
+        .cat-btn { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 20px; border-radius: 20px; white-space: nowrap; cursor: pointer; color: var(--text-muted); font-weight: 600; font-size: 13px; transition: 0.2s; }
+        .cat-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        
+        #tours-container { padding: 0 16px; position: relative; z-index: 2; margin-top: 5px; }
+        .tour-card { background-color: var(--card-bg); border-radius: 24px; overflow: hidden; margin-bottom: 25px; box-shadow: 0 8px 25px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); animation: slideUpFade 0.4s ease-out forwards; position: relative; }
+        .tour-image { width: 100%; height: 220px; object-fit: cover; display: block; }
+        .like-btn { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(255,255,255,0.95); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: none; transition: 0.2s; }
+        .like-btn:active { transform: scale(0.8); }
+        .like-btn.liked { color: var(--accent-color); } .like-btn.unliked { color: #bdc3c7; }
+        .badge { position: absolute; top: 15px; left: 15px; padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; color: white; z-index: 5; text-transform: uppercase; letter-spacing: 0.5px;}
+        .badge.fire { background: linear-gradient(135deg, #e74c3c, #c0392b); } .badge.hit { background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); }
+        
+        .tour-content { padding: 20px; }
+        .tour-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .tour-title { font-size: 18px; font-weight: 700; margin: 0; line-height: 1.3; color: var(--text-main); }
+        .tour-country { font-size: 11px; color: var(--primary-dark); text-transform: uppercase; font-weight: 700; background: rgba(243, 156, 18, 0.1); padding: 5px 10px; border-radius: 12px; margin-top: 8px; display: inline-block; }
+        
+        /* === УЛУЧШЕННЫЕ DOODLES ТОЛЬКО ДЛЯ ГЛАВНОЙ === */
+        .tour-price { 
+            color: var(--text-main); font-weight: 800; font-size: 20px; white-space: nowrap; margin-left: 10px; 
+            position: relative; display: inline-block; z-index: 1; padding-bottom: 4px; /* Отступ чтобы не липло к цифрам */
+        }
+        .tour-price::after {
+            content: ''; position: absolute; bottom: 0px; left: -2%; width: 104%; height: 8px;
+            /* Более тонкий и стильный росчерк в виде двойной линии */
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 15' preserveAspectRatio='none'%3E%3Cpath d='M3,10 Q30,14 95,6' stroke='%23f39c12' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M15,13 Q50,16 85,9' stroke='%23f39c12' stroke-width='1' stroke-linecap='round' fill='none' opacity='0.7'/%3E%3C/svg%3E") no-repeat center;
+            background-size: 100% 100%; z-index: -1; transform: rotate(-2deg);
+        }
+
+        .tour-details { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
+        .btn-book { background: var(--primary-color); color: white; border: none; border-radius: 14px; padding: 16px; width: 100%; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-book:active { background: var(--primary-dark); transform: scale(0.98); }
+
+        /* === ЭКРАН "О НАС" === */
+        #about-section { padding: 20px; display: none; animation: slideUpFade 0.4s ease-out forwards; }
+        .about-card { background-color: var(--card-bg); border-radius: 24px; padding: 25px; box-shadow: 0 8px 25px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); color: var(--text-main); font-size: 14px; line-height: 1.8; }
+        .about-card p { color: var(--text-muted); }
+        .section-title { font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;}
+        .section-title::before { content: ''; display: block; width: 4px; height: 18px; background: var(--primary-color); border-radius: 2px; }
+
+        /* === ЭКРАН "ДЕТАЛИ ТУРА" === */
+        #tour-detail-section { display: none; padding-bottom: 30px; animation: slideUpFade 0.3s ease-out; }
+        .detail-gallery-container { width: 100%; height: 350px; position: relative; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .swiper-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .swiper-pagination-bullet-active { background: var(--primary-color) !important; opacity: 1; }
+        
+        .detail-content { padding: 20px; }
+        .detail-title { font-size: 24px; font-weight: 700; color: var(--text-main); margin: 0 0 10px 0; }
+        .quick-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; margin-bottom: 25px; }
+        .stat-box { background: var(--card-bg); padding: 15px; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .stat-icon { font-size: 22px; margin-bottom: 5px; }
+        
+        /* ЗДЕСЬ Я ПОЛНОСТЬЮ УБРАЛ ПОДЧЕРКИВАНИЕ ДЛЯ ЦЕНЫ ВНУТРИ ТУРА */
+        .stat-val { font-size: 16px; font-weight: 700; color: var(--text-main); }
+        .stat-lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+
+        .detail-desc { font-size: 14px; color: var(--text-main); line-height: 1.7; margin-bottom: 30px; background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--border-color); }
+        
+        .accordion-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
+        .accordion-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--text-main); transition: 0.2s; }
+        .accordion-header.active { background: #fffcf8; color: var(--primary-dark); border-bottom: 1px solid var(--border-color);}
+        .accordion-icon { font-size: 12px; transition: transform 0.3s; color: var(--primary-color); }
+        .accordion-header.active .accordion-icon { transform: rotate(180deg); }
+        .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .accordion-content-inner { padding: 15px 20px 20px 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+        .action-buttons { margin-top: 30px; display: flex; flex-direction: column; gap: 12px; }
+        .btn-submit { background: var(--primary-color); color: white; border: none; border-radius: 14px; padding: 18px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3); transition: transform 0.1s;}
+        .btn-submit:active { transform: scale(0.98); }
+        .btn-chat { background: transparent; color: var(--text-main); border: 2px solid var(--border-color); border-radius: 14px; padding: 16px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; transition: 0.2s; }
+        .btn-chat:active { background: rgba(0,0,0,0.03); }
+
+        /* МЕНЮ */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); display: flex; justify-content: space-around; padding: 10px 0 25px 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); z-index: 1000; border-top: 1px solid var(--border-color); }
+        .nav-item { text-align: center; color: var(--text-muted); cursor: pointer; font-size: 11px; font-weight: 600; flex: 1; transition: color 0.2s;}
+        .nav-item.active { color: var(--primary-color); } .nav-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+        
+        /* ФОРМА И ЛОАДЕР */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; backdrop-filter: blur(5px);}
+        .modal-content { background: var(--bg-color); width: 100%; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 30px 25px 40px 25px; box-sizing: border-box; animation: slideUpFade 0.3s ease-out; }
+        .input-field { width: 100%; box-sizing: border-box; padding: 16px 20px; margin-bottom: 12px; border-radius: 14px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-size: 15px; outline: none; }
+        .input-field:focus { border-color: var(--primary-color); }
+        
+        #loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; }
+        #loading-text { font-size: 15px; font-weight: 600; color: var(--text-muted); margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="toast">Уведомление</div>
+
+    <div id="main-section">
+        <div class="header-banner">
+            <img src="logo.png" alt="TGS Logo" class="logo-img">
+            <p>Создаем воспоминания. Эксклюзивные туры и отдых вашей мечты!</p>
+        </div>
+        <div class="filters-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Куда отправимся? (Дубай, Европа...)" onkeyup="applyFilters()">
+            <div class="budget-filter">
+                <div class="budget-header"><span>Бюджет:</span><span class="budget-value" id="budgetValue">Любой</span></div>
+                <input type="range" id="budgetSlider" class="range-slider" min="100" max="5000" step="100" value="5000" oninput="updateBudgetText(this.value)" onchange="applyFilters()">
+            </div>
+        </div>
+        <div class="categories-section" id="categoriesBlock">
+            <div class="category-list">
+                <button class="cat-btn active" onclick="filterTours('Все', this)">Все туры</button>
+                <button class="cat-btn" onclick="filterTours('Узбекистан', this)">Узбекистан</button>
+                <button class="cat-btn" onclick="filterTours('Центральная Азия', this)">Центральная Азия</button>
+                <button class="cat-btn" onclick="filterTours('Турция', this)">Турция</button>
+                <button class="cat-btn" onclick="filterTours('Европа', this)">Европа</button>
+            </div>
+        </div>
+        
+        <div id="loading-container">
+            <lottie-player src="https://lottie.host/80a80e1a-471a-4dc3-8b74-0ebf3041c22e/B41o2T06hP.json" background="transparent" speed="1" style="width: 120px; height: 120px;" loop autoplay></lottie-player>
+            <div id="loading-text">Ищем лучшие предложения...</div>
+        </div>
+
+        <div id="tours-container"></div>
+    </div>
+
+    <div id="about-section">
+        <div class="about-card">
+            <h2 class="section-title">О TGS Travel</h2>
+            <p>Туристическое агентство <b>TGS Travel</b> прошло долгий путь с момента своего основания в 2010 году. Мы созданы людьми, страстно увлеченными туризмом и незабываемыми приключениями.</p>
+            <p>Сейчас мы ежегодно организуем отдых для более чем <b>6000 путешественников</b> по Европе и Азии. Наша команда лично посетила множество удивительных стран и гордится своим опытом.</p>
+            <a href="https://tgstraveluz.com/" class="btn-chat" style="display:block; margin-top: 20px;" target="_blank">🌐 Наш официальный сайт</a>
+        </div>
+    </div>
+
+    <div id="tour-detail-section">
+        <div class="swiper detail-gallery-container">
+            <div class="swiper-wrapper" id="detail-gallery-wrapper"></div>
+            <div class="swiper-pagination"></div>
+        </div>
+
+        <div class="detail-content">
+            <h1 class="detail-title" id="detail-title">Название тура</h1>
+            <div class="tour-country" id="detail-country">📍 Страна</div>
+            
+            <div class="quick-stats-grid">
+                <div class="stat-box"><div class="stat-icon">⏳</div><div class="stat-val" id="detail-days">7 Дней</div><div class="stat-lbl">Длительность</div></div>
+                <div class="stat-box"><div class="stat-icon">💵</div><div class="stat-val" id="detail-price">899 $</div><div class="stat-lbl">За человека</div></div>
+            </div>
+
+            <div class="section-title">Подробно о туре</div>
+            <div class="detail-desc" id="detail-desc">Описание</div>
+
+            <div class="section-title" id="itinerary-title">Программа по дням</div>
+            <div id="detail-program-container"></div>
+
+            <div class="action-buttons">
+                <button class="btn-submit" onclick="openLeadForm()">📝 Оставить заявку на расчет</button>
+                <button class="btn-chat" onclick="openChatWithTour()">💬 Связаться с менеджером</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="leadModal">
+        <div class="modal-content">
+            <h3 class="section-title" style="margin-bottom: 20px;">📝 Оформление заявки</h3>
+            <div style="font-weight:600; margin-bottom:15px; color:var(--text-main);" id="modalTourName"></div>
+            <input type="text" id="leadName" class="input-field" placeholder="👤 Ваше имя" required>
+            <input type="tel" id="leadPhone" class="input-field" placeholder="📞 Номер телефона" required>
+            <button class="btn-submit" style="width:100%; margin-top:10px;" onclick="submitLead()">Отправить заявку</button>
+            <button class="btn-chat" style="width:100%; margin-top:10px;" onclick="closeModal()">Отмена</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav" id="main-bottom-nav">
+        <div class="nav-item active" id="nav-main" onclick="switchTab('main')"><span class="nav-icon">🧭</span>Туры</div>
+        <div class="nav-item" id="nav-fav" onclick="switchTab('favorites')"><span class="nav-icon">❤️</span>Избранное</div>
+        <div class="nav-item" onclick="openChat()"><span class="nav-icon">💬</span>Связаться</div>
+        <div class="nav-item" id="nav-about" onclick="switchTab('about')"><span class="nav-icon">ℹ️</span>О нас</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.setHeaderColor(tg.colorScheme === 'dark' ? '#1c1c1d' : '#fcfaf5'); 
+
+        // ВАША ССЫЛКА НА ГУГЛ УЖЕ ЗДЕСЬ!
+        const GOOGLE_APP_URL = 'https://script.google.com/macros/s/AKfycbxCdGq6Q7rgAWhcC0c6VWzMkw3sRZJPJ8D--OQ9VrNRQHqJpC_Dr3W5oY3LT-ItjL_c/exec'; 
+        
+        let allToursList = [];
+        let likedTours = JSON.parse(localStorage.getItem('tgs_liked_tours')) || [];
+        let currentSelectedTourObj = null; 
+        let swiperInstance = null; 
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        tg.BackButton.onClick(() => {
+            document.getElementById('tour-detail-section').style.display = 'none';
+            document.getElementById('main-section').style.display = 'block';
+            document.getElementById('about-section').style.display = 'none';
+            document.getElementById('main-bottom-nav').style.display = 'flex'; 
+            tg.BackButton.hide();
+            window.scrollTo(0,0);
+        });
+
+        function updateBudgetText(v) { document.getElementById('budgetValue').innerText = v == 5000 ? 'Любой' : 'до ' + v + ' $'; }
+
+        function switchTab(tab) {
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            document.getElementById('tour-detail-section').style.display = 'none';
+            document.getElementById('main-section').style.display = (tab === 'main' || tab === 'favorites') ? 'block' : 'none';
+            document.getElementById('about-section').style.display = tab === 'about' ? 'block' : 'none';
+            
+            document.getElementById('categoriesBlock').style.display = (tab === 'favorites' || tab === 'about') ? 'none' : 'block';
+            if(tab === 'favorites' || tab === 'about') { document.querySelector('.filters-container').style.display = 'none'; } 
+            else { document.querySelector('.filters-container').style.display = 'block'; }
+            
+            document.getElementById('nav-main').classList.toggle('active', tab === 'main');
+            document.getElementById('nav-fav').classList.toggle('active', tab === 'favorites');
+            document.getElementById('nav-about').classList.toggle('active', tab === 'about');
+            tg.BackButton.hide();
+            if(tab !== 'about') applyFilters();
+        }
+
+        function openChat() { if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium'); tg.openTelegramLink('https://t.me/tgstours'); }
+
+        function renderTours(toursToRender) {
+            const container = document.getElementById('tours-container');
+            container.innerHTML = ''; 
+            toursToRender.forEach(tour => {
+                const firstPhoto = tour.photo ? tour.photo.split(',')[0].trim() : 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?ixlib=rb-4.0.3';
+                let badgeHtml = '';
+                const textToCheck = (tour.title + " " + tour.description).toLowerCase();
+                if (textToCheck.includes('горящ')) badgeHtml = '<div class="badge fire">🔥 Горящий</div>';
+                else if (textToCheck.includes('хит')) badgeHtml = '<div class="badge hit">⭐ Хит продаж</div>';
+
+                const isLiked = likedTours.includes(tour.title);
+                const card = document.createElement('div');
+                card.className = 'tour-card';
+                card.innerHTML = `
+                    <button class="like-btn ${isLiked ? 'liked' : 'unliked'}" onclick="toggleLike('${tour.title}')">${isLiked ? '❤️' : '🤍'}</button>
+                    ${badgeHtml}
+                    <img src="${firstPhoto}" class="tour-image">
+                    <div class="tour-content">
+                        <div class="tour-header">
+                            <div><h3 class="tour-title">${tour.title}</h3><div class="tour-country">📍 ${tour.country}</div></div>
+                            <div class="tour-price">${tour.price}</div>
+                        </div>
+                        <div class="tour-details">⏱ ${tour.days}<br><span style="color:var(--text-muted); font-size: 13px;">${tour.description}</span></div>
+                        <button class="btn-book" onclick="openTourDetails('${tour.id}')">Узнать подробнее</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function toggleLike(tourTitle) {
+            const index = likedTours.indexOf(tourTitle);
+            if (index === -1) {
+                likedTours.push(tourTitle);
+                showToast('❤️ Добавлено в избранное'); 
+            } else {
+                likedTours.splice(index, 1);
+            }
+            localStorage.setItem('tgs_liked_tours', JSON.stringify(likedTours));
+            applyFilters();
+        }
+
+        function openTourDetails(tourId) {
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            const tour = allToursList.find(t => t.id == tourId);
+            currentSelectedTourObj = tour;
+
+            const galleryWrapper = document.getElementById('detail-gallery-wrapper');
+            galleryWrapper.innerHTML = ''; 
+            const photosString = tour.photo ? tour.photo : 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?ixlib=rb-4.0.3';
+            const photosArray = photosString.split(','); 
+
+            photosArray.forEach(photoUrl => {
+                if(photoUrl.trim()) {
+                    const slide = document.createElement('div');
+                    slide.className = 'swiper-slide';
+                    slide.innerHTML = `<img src="${photoUrl.trim()}" alt="${tour.title}">`;
+                    galleryWrapper.appendChild(slide);
+                }
+            });
+
+            if (swiperInstance) { swiperInstance.destroy(); }
+            swiperInstance = new Swiper('.detail-gallery-container', {
+                loop: photosArray.length > 1,
+                pagination: { el: '.swiper-pagination', clickable: true },
+                autoplay: { delay: 4000, disableOnInteraction: false },
+            });
+
+            document.getElementById('detail-title').innerText = tour.title;
+            document.getElementById('detail-country').innerText = "📍 " + tour.country;
+            document.getElementById('detail-days').innerText = tour.days;
+            document.getElementById('detail-price').innerText = tour.price;
+            
+            let detailedText = (tour.detailed_desc && tour.detailed_desc.trim() !== "") ? tour.detailed_desc : tour.description;
+            document.getElementById('detail-desc').innerHTML = detailedText.replace(/\n/g, '<br>');
+
+            const programContainer = document.getElementById('detail-program-container');
+            programContainer.innerHTML = '';
+            
+            if (tour.program && tour.program.trim() !== '') {
+                document.getElementById('itinerary-title').style.display = 'flex';
+                const days = tour.program.split('[SEP]'); 
+                days.forEach(dayStr => {
+                    const parts = dayStr.split('||'); 
+                    if(parts.length >= 2) {
+                        const item = document.createElement('div');
+                        item.className = 'accordion-item';
+                        item.innerHTML = `
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span>${parts[0].trim()}</span><span class="accordion-icon">▼</span>
+                            </div>
+                            <div class="accordion-body"><div class="accordion-content-inner">${parts[1].trim()}</div></div>`;
+                        programContainer.appendChild(item);
+                    }
+                });
+            } else { document.getElementById('itinerary-title').style.display = 'none'; }
+
+            document.getElementById('main-section').style.display = 'none';
+            document.getElementById('main-bottom-nav').style.display = 'none'; 
+            document.getElementById('tour-detail-section').style.display = 'block';
+            window.scrollTo(0,0);
+            tg.BackButton.show();
+        }
+
+        function toggleAccordion(headerElement) {
+            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            headerElement.classList.toggle('active');
+            const body = headerElement.nextElementSibling;
+            if (headerElement.classList.contains('active')) { body.style.maxHeight = body.scrollHeight + "px"; } 
+            else { body.style.maxHeight = "0"; }
+        }
+
+        function openLeadForm() { document.getElementById('modalTourName').innerText = "Тур: " + currentSelectedTourObj.title; document.getElementById('leadModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('leadModal').style.display = 'none'; }
+
+        function submitLead() {
+            const name = document.getElementById('leadName').value;
+            const phone = document.getElementById('leadPhone').value;
+            if (!name || !phone) { tg.showAlert('Заполните все поля!'); return; }
+            
+            closeModal();
+            showToast('✅ Заявка готова к отправке!');
+            
+            setTimeout(() => {
+                const text = `🔥 НОВАЯ ЗАЯВКА НА РАСЧЕТ 🔥\n🌍 Тур: ${currentSelectedTourObj.title}\n👤 Имя: ${name}\n📞 Телефон: ${phone}`;
+                tg.openTelegramLink(`https://t.me/tgstours?text=${encodeURIComponent(text)}`);
+            }, 1500);
+        }
+
+        function openChatWithTour() { tg.openTelegramLink(`https://t.me/tgstours?text=${encodeURIComponent('Здравствуйте! Меня заинтересовал тур ' + currentSelectedTourObj.title)}`); }
+
+        let currentCategory = 'Все';
+        function filterTours(cat, btn) { currentCategory = cat; document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); applyFilters(); }
+        
+        function applyFilters() {
+            let filtered = allToursList;
+            if (document.getElementById('nav-fav').classList.contains('active')) { filtered = filtered.filter(tour => likedTours.includes(tour.title)); } 
+            else {
+                if (currentCategory !== 'Все') filtered = filtered.filter(t => t.country.toLowerCase().includes(currentCategory.toLowerCase()));
+                const q = document.getElementById('searchInput').value.toLowerCase();
+                if (q) filtered = filtered.filter(t => t.title.toLowerCase().includes(q) || t.country.toLowerCase().includes(q) || t.description.toLowerCase().includes(q));
+                const maxP = parseInt(document.getElementById('budgetSlider').value);
+                if (maxP < 5000) filtered = filtered.filter(t => { let p = parseInt(t.price.toString().replace(/\D/g, '')); return isNaN(p) || p <= maxP; });
+            }
+            renderTours(filtered);
+        }
+
+        async function fetchTours() {
+            try {
+                const res = await fetch(GOOGLE_APP_URL + "?nocache=" + new Date().getTime());
+                allToursList = await res.json();
+                document.getElementById('loading-container').style.display = 'none'; 
+                applyFilters();
+            } catch (e) { document.getElementById('loading-text').innerText = 'Ошибка загрузки данных.'; }
+        }
+        fetchTours();
+    </script>
+</body>
+</html>
